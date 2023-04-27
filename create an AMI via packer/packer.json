@@ -1,0 +1,95 @@
+{
+    "_comment": "Create a AWS AMI ith AMZ Linux 2018 with Java and Tomcat",
+    "variables": {
+        "aws_access_key": "",
+        "aws_secret_key": "",
+        "region": "",
+        "source_ami": "",
+        "instance_type": "",
+        "vpc_id": "",
+        "subnet_id": ""
+    },
+    "_comment1": "packer build -var \"aws_secret_key=foo\" template.json",
+    "_comment2": "packer build -var-file packer-vars.json template.json",
+    "builders": [
+        {
+            "access_key": "{{user `aws_access_key`}}",
+            "secret_key": "{{user `aws_secret_key`}}",
+            "type": "amazon-ebs",
+            "region": "{{user `region`}}",
+            "source_ami": "{{user `source_ami`}}",
+            "instance_type": "{{user `instance_type`}}",
+            "ssh_username": "ubuntu",
+            "ami_name": "AWS-AMI-PACKER-ASG-Image-{{isotime | clean_resource_name}}",
+            "vpc_id": "{{user `vpc_id`}}",
+            "subnet_id": "{{user `subnet_id`}}",
+            "tags": {
+                "Name": "AWS-AMI-PACKER-ASG-Image-{{isotime | clean_resource_name}}"
+            }
+        }
+    ],
+    "provisioners": [
+        {
+            "type": "shell",
+            "inline": [
+                "curl https://get.docker.com | bash",
+                "sudo docker version"
+            ]
+        },
+        {
+            "type": "file",
+            "source": "docker.service",
+            "destination": "/tmp/docker.service"
+        },
+        {
+            "type": "shell",
+            "inline": [
+                "sudo cp /tmp/docker.service /lib/systemd/system/docker.service",
+                "sudo usermod -a -G docker ubuntu",
+                "sudo systemctl daemon-reload",
+                "sudo service docker restart"
+            ]
+        },
+        {
+            "type": "shell",
+            "inline": [
+                "sudo useradd --no-create-home --shell /bin/false node_exporter",
+                "wget https://github.com/prometheus/node_exporter/releases/download/v1.3.1/node_exporter-1.3.1.linux-amd64.tar.gz",
+                "tar xvf node_exporter-1.3.1.linux-amd64.tar.gz",
+                "sudo cp node_exporter-1.3.1.linux-amd64/node_exporter /usr/local/bin/",
+                "sudo chown node_exporter:node_exporter /usr/local/bin/node_exporter"
+            ]
+        },
+        {
+            "type": "file",
+            "source": "node_exporter.service",
+            "destination": "/tmp/node_exporter.service"
+        },
+        {
+            "type": "shell",
+            "inline": [
+                "sudo cp /tmp/node_exporter.service /lib/systemd/system/node_exporter.service",
+                "sudo systemctl daemon-reload",
+                "sudo systemctl start node_exporter",
+                "sudo systemctl restart node_exporter",
+                "sudo systemctl enable node_exporter",
+                "sudo systemctl status node_exporter",
+                "rm -rf node_exporter*"
+            ]
+        },
+        {
+            "inline": [
+                "sudo apt update",
+                "sudo apt install software-properties-common -y",
+                "sudo apt-add-repository --yes --update ppa:ansible/ansible",
+                "sudo apt update",
+                "sudo apt install ansible -y",
+                "sudo apt install nginx -y",
+                "sudo apt install python-apt -y",
+                "sudo apt install -y git stress htop",
+                "sudo git clone -b awsb46-packer https://github.com/mavrick202/ansibletemplatetesting.git /myrepo"
+            ],
+            "type": "shell"
+        }
+    ]
+}
