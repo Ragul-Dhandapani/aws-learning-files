@@ -15,6 +15,6 @@
 - S3 Access Points => To share the data between the teams where the folders with in a same bucket ( for ex: Bucket has Team1 & Team2 folder => Team2 cannot access Team1 folder and same for others so that its useful => **Yet to test**)
 
 
-##CDN Finder
+## CDN Finder
 - After you completed the CloudFront it takes sometime so that you can view your website here : 
   - https://www.cdnplanet.com/tools/cdnfinder/
